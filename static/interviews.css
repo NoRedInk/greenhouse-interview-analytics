@@ -1,0 +1,34 @@
+body {
+   font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+   font-weight: 300;
+}
+
+.dc-chart g.row text {
+    fill: black;
+}
+
+.dc-chart .axis line.grid-line {
+    stroke: #ccc;
+}
+
+.row {
+    display: flex;
+}
+
+.main {
+    display: flex;
+}
+
+.filter-controls {
+    font-size: 14px;
+    margin-left: 10px;
+    color: #666;
+}
+
+.filter-controls .reset {
+    margin-right: 1em;
+}
+
+.filter-controls a {
+    color: #666;
+}
