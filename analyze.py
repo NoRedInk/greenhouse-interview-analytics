@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 from collections import defaultdict, OrderedDict
-import string
-import re
 import click
 import db
 
 
-TAG_DELIM_RE = re.compile(r'[, ]+')
-PUNCT_ERASER = dict.fromkeys(map(ord, string.punctuation + ' '))
 REC_SCORES = OrderedDict([
     ('definitely_not', -2),
     ('no', -1),
@@ -69,14 +65,6 @@ def columns():
     table = db.interviews_table()
     for column in table.table.columns:
         print(column.name)
-
-
-def split_tags(tags):
-    for tag in TAG_DELIM_RE.split(tags):
-        stripped = tag.strip()
-        cleaned = tag.translate(PUNCT_ERASER)
-        if stripped and cleaned:
-            yield stripped
 
 
 if __name__ == '__main__':
