@@ -5,6 +5,7 @@ from flask.ext.dataset import Dataset
 import tagging
 import db
 import analyze
+from decorators import requires_auth
 
 
 app = Flask(__name__)
@@ -13,11 +14,13 @@ database = Dataset(app)
 
 
 @app.route("/")
+@requires_auth
 def index():
     return render_template('index.html')
 
 
 @app.route("/interviews.json")
+@requires_auth
 def interviews_json():
     table = db.interviews_table(database)
     interviews = list(map(format_row, table.find()))
@@ -34,6 +37,7 @@ def format_row(row):
 
 
 @app.route("/interviews.db")
+@requires_auth
 def interviews_db():
     return send_file('data/interviews.db')
 
