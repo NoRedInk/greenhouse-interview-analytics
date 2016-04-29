@@ -251,6 +251,25 @@ function createTagRecsGroup(dimension, scorecardRecs, byRecs) {
   };
 }
 
+function bubbleColorScale(scorecardRecs, sortedRecs, maxRadiusValue) {
+  var xColorScale = d3.scale.linear()
+      .domain([scorecardRecs[sortedRecs[0]], scorecardRecs[sortedRecs[sortedRecs.length - 1]]])
+      .range(["#8E62A7", "#3BD867"]); // purle, green
+  var yColorScales = {}
+  var createYColorScale = function(maxColor) {
+    return d3.scale
+      .linear()
+      .domain([1, maxRadiusValue])
+      .range([d3.hsl(maxColor).brighter(1.5), maxColor]);
+  }
+  return function(d) {
+    var maxColor = xColorScale(scorecardRecs[d.rec]);
+    var yColorScale = yColorScales[maxColor] = yColorScales[maxColor] || createYColorScale(maxColor);
+    return yColorScale(d.value);
+  }
+}
+
+
 function createRecsByTagChart(ndx, selector, scorecardRecs) {
   var tagsDimension = ndx.dimension(plucker('scorecard_tags'));
   var tagRecsGroup = createTagRecsGroup(tagsDimension, scorecardRecs, true);
@@ -266,39 +285,25 @@ function createRecsByTagChart(ndx, selector, scorecardRecs) {
         return scorecardRecs[a] - scorecardRecs[b];
       });
 
-  var chart = dc.bubbleChart(selector);
-  var height = 800;
   var maxRadiusValue = Math.max.apply(
     null,
     tagRecsGroup.all().map(function(tagRecs) {
       return tagRecs.value;
     }));
+  var colorScale = bubbleColorScale(scorecardRecs, sortedRecs, maxRadiusValue);
+  var height = 800;
   var margins = clone(defaultMargins);
   margins.left = 80;
 
-  var xColorScale = d3.scale.linear()
-    .domain([scorecardRecs[sortedRecs[0]], scorecardRecs[sortedRecs[sortedRecs.length - 1]]])
-      .range(["#8E62A7", "#3BD867"]);
-  var yColorScales = {}
-  var createYColorScale = function(maxColor) {
-    return d3.scale.linear().domain([1, maxRadiusValue]).range([d3.hsl(maxColor).brighter(1.5), maxColor]);
-  }
-  var colorScale = function(d) {
-    var maxColor = xColorScale(scorecardRecs[d.rec]);
-    var yColorScale = yColorScales[maxColor] = yColorScales[maxColor] || createYColorScale(maxColor);
-    return yColorScale(d.value);
-  }
-
+  var chart = dc.bubbleChart(selector);
   appendFilterControls(chart, true);
   chart
     .width(260)
-    .height(800)
+    .height(height)
     .margins(margins)
     .dimension(tagsDimension)
     .group(tagRecsGroup)
     .elasticX(false) // needed to preserve x ordering
-    .elasticY(false)
-//    .renderHorizontalGridLines(true)
     .renderVerticalGridLines(true)
     .maxBubbleRelativeSize(1 / (sortedRecs.length + 2) / 2)
     .filterHandler(function (dimension, filters) {
@@ -344,6 +349,7 @@ function createRecsByTagChart(ndx, selector, scorecardRecs) {
     this.y().rangeBands([this.yAxisHeight(), 0]);
   });
 
+  // hack to adjust axes positioning
   chart.on('renderlet', function(g) {
     var xShift = (chart.width() / (sortedRecs.length + 2)) * 0.5 * 0.75 /* magic */;
     var yShift = (chart.height() / (chart.y().domain().length + 2)) * 0.5 * 1.18 /* magic */;
@@ -373,6 +379,45 @@ function createRecsByTagChart(ndx, selector, scorecardRecs) {
   };
 }
 
+function createDatatable(ndx, selector) {
+  var dimension = ndx.dimension(function(d) {
+    return d.application_updated_at_date;
+  });
+  var chart = dc.dataTable(selector);
+  chart
+    .dimension(dimension)
+    .group(function (d) {
+      var format = d3.format('02d');
+      var date = d.application_updated_at_date;
+      return date.getFullYear() + '/' + format((date.getMonth() + 1));
+    })
+    .size(Infinity)
+    .columns([
+      column('Interviewer', 'interviewer_name'),
+      column('Job', 'job_title'),
+      column('Type', 'interview_type'),
+      column('Scorecard', 'scorecard_recommendation'),
+      column('Status', 'application_status'),
+      column('Tags', 'scorecard_tags'),
+    ])
+    .sortBy(function (d) {
+      return d.application_updated_at_date;
+    })
+    .order(d3.descending);
+
+  return {
+    chart: chart,
+    dimension: dimension
+  };
+}
+
+function column(label, prop) {
+  return {
+    label: label,
+    format: plucker(prop)
+  };
+}
+
 function main(data) {
   data.interviews.forEach(function(d) {
     d.application_updated_at_date = d3.time.format.iso.parse(d.application_updated_at);
@@ -381,8 +426,17 @@ function main(data) {
   var all = ndx.groupAll();
 
   var jobTitles = createRowChart(ndx, '#job-title-chart', 'job_title')
+  jobTitles
+    .chart
+    .ordinalColors(qualitativeColors(5));
   createRowChart(ndx, '#interviewer-chart', 'interviewer_name')
+    .chart
+    .ordinalColors(qualitativeColors(12));
   createRowChart(ndx, '#interview-type-chart', 'interview_type')
+    .chart
+    .ordering(function(d) {
+      return -d.value;
+    });
   createRowChart(ndx, '#scorecard-outcome-chart', 'scorecard_recommendation')
     .chart
     .ordering(function(d) {
@@ -393,6 +447,8 @@ function main(data) {
   createMonthlyVolumeChart(ndx, '#volume-by-month-chart', jobTitles.group, 'job_title');
   var recsByTag = createRecsByTagChart(ndx, '#recs-by-tag-chart', data.scorecard_recs);
 
+  createDatatable(ndx, '#datatable');
+
   dc.chartRegistry.list().forEach(function(chart) {
     if (recsByTag.chart.anchorName() === chart.anchorName()) {
       return;
@@ -401,6 +457,10 @@ function main(data) {
   })
 
   dc.renderAll();
+}
+
+function qualitativeColors(num) {
+  return palette('tol', num).map(function(d) { return '#' + d; })
 }
 
 function plucker(key) {

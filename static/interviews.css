@@ -3,20 +3,32 @@ body {
    font-weight: 300;
 }
 
-.dc-chart g.row text {
-    fill: black;
-}
-
-.dc-chart .axis line.grid-line {
-    stroke: #ccc;
+.main {
+    display: flex;
 }
 
 .row {
     display: flex;
 }
 
-.main {
-    display: flex;
+.notes {
+    font-size: 12px;
+    color: #666;
+}
+
+.notes ul {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+
+.notes li {
+    display: inline-block;
+}
+
+.notes li + li:before {
+    content: " | ";
 }
 
 .filter-controls {
@@ -31,4 +43,57 @@ body {
 
 .filter-controls a {
     color: #666;
+}
+
+.dc-table-row:nth-child(2n) {
+    background-color: #F2F6F9; /* $blue-dark5 */
+}
+
+.dc-table-head {
+    padding: 4px;
+    max-width: 4em;
+    background-color: #00488A; /* $blue-dark */
+    color: #e8e8e8;
+}
+
+.dc-table-label {
+    padding: 10px;
+    background-color: #ABC3D8;
+    color: #333;
+}
+
+.dc-table-column {
+    padding: 2px 10px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 14px;
+}
+
+/* Interviewer */
+.dc-table-column._0 {
+    max-width: 6em;
+}
+
+/* Job */
+.dc-table-column._1 {
+    max-width: 10em;
+}
+
+/* Type */
+.dc-table-column._2 {
+    max-width: 10em;
+}
+
+/* Tags */
+.dc-table-column._5 {
+    white-space: pre-wrap;
+}
+
+.dc-chart g.row text {
+    fill: black;
+}
+
+.dc-chart .axis line.grid-line {
+    stroke: #ccc;
 }
