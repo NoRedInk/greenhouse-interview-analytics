@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import time
+
 import requests
 
 import db
@@ -14,6 +16,7 @@ def iter_list(*path_components, **kwargs):
     url = requests.compat.urljoin('https://harvest.greenhouse.io/v1/', '/'.join(map(str, path_components)))
     last_page = False
     while not last_page:
+        time.sleep(0.2)
         print('GET', url, params)
         response = session.get(
             url,
