@@ -66,11 +66,9 @@ def store_interview(table, job, application, scorecard):
     if interview:
         interview = update_interview(interview, job, application, scorecard)
         table.update(interview, ['id'])
-        print(interview)
     else:
         interview = update_interview(keys, job, application, scorecard)
         table.insert(interview)
-        print(interview)
 
 
 def update_interview(interview, job, application, scorecard):
