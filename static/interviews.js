@@ -77,7 +77,7 @@ function createPieChart(ndx, selector, propname) {
 
 function createMonthlyVolumeChart(ndx, selector, seriesGroup, seriesProp) {
   var dateDimension = ndx.dimension(function(d) {
-    return d3.time.month(d.application_updated_at_date);
+    return d3.time.month(d.interviewed_at_date);
   });
 
   var margins = clone(defaultMargins);
@@ -381,14 +381,14 @@ function createRecsByTagChart(ndx, selector, scorecardRecs) {
 
 function createDatatable(ndx, selector) {
   var dimension = ndx.dimension(function(d) {
-    return d.application_updated_at_date;
+    return d.interviewed_at_date;
   });
   var chart = dc.dataTable(selector);
   chart
     .dimension(dimension)
     .group(function (d) {
       var format = d3.format('02d');
-      var date = d.application_updated_at_date;
+      var date = d.interviewed_at_date;
       return date.getFullYear() + '/' + format((date.getMonth() + 1));
     })
     .size(Infinity)
@@ -401,7 +401,7 @@ function createDatatable(ndx, selector) {
       column('Tags', 'scorecard_tags'),
     ])
     .sortBy(function (d) {
-      return d.application_updated_at_date;
+      return d.interviewed_at_date;
     })
     .order(d3.descending);
 
@@ -420,7 +420,7 @@ function column(label, prop) {
 
 function main(data) {
   data.interviews.forEach(function(d) {
-    d.application_updated_at_date = d3.time.format.iso.parse(d.application_updated_at);
+    d.interviewed_at_date = d3.time.format.iso.parse(d.interviewed_at);
   });
   var ndx = crossfilter(data.interviews);
   var all = ndx.groupAll();
