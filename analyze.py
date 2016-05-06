@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 from collections import defaultdict, OrderedDict
+import json
+
 import click
+
 import db
+import scorecard
+from default_settings import TAGS_QUESTION_RE, TAGS_PREFIX
 
 
 REC_SCORES = OrderedDict([
@@ -36,13 +41,16 @@ def cli():
 def tally_tags(filters):
     table = db.interviews_table()
     tag_recs = defaultdict(lambda: defaultdict(int))
-    conditions = [table.table.columns.scorecard_tags != None]
+    conditions = []
     for column, value in filters:
         conditions.append(getattr(table.table.columns, column) == value)
     for row in table.find(*conditions):
         rec = row['scorecard_recommendation']
         # TODO: maybe aggregate by candidate first
-        for tag in split_tags(row['scorecard_tags']):
+        for tag in scorecard.extract_tags(
+                json.loads(row['scorecard_questions']),
+                tags_prefix=TAGS_PREFIX,
+                question_title_re=TAGS_QUESTION_RE):
             tag_recs[tag][rec] += 1
             tag_recs[tag]['score'] += REC_SCORES.get(rec, 0)
 
