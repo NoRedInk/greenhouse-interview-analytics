@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import time
+import json
+
 import requests
 
 import db
@@ -14,6 +17,7 @@ def iter_list(*path_components, **kwargs):
     url = requests.compat.urljoin('https://harvest.greenhouse.io/v1/', '/'.join(map(str, path_components)))
     last_page = False
     while not last_page:
+        time.sleep(0.2)
         print('GET', url, params)
         response = session.get(
             url,
@@ -62,11 +66,9 @@ def store_interview(table, job, application, scorecard):
     if interview:
         interview = update_interview(interview, job, application, scorecard)
         table.update(interview, ['id'])
-        print(interview)
     else:
         interview = update_interview(keys, job, application, scorecard)
         table.insert(interview)
-        print(interview)
 
 
 def update_interview(interview, job, application, scorecard):
@@ -74,7 +76,9 @@ def update_interview(interview, job, application, scorecard):
     Update the following columns:
       candidate_id
       scorecard_recommendation
-      scorecard_tags
+      scorecard_ratings
+      scorecard_questions
+      interviewed_at
       interviewer_id
       interviewer_name
       interview_type
@@ -87,7 +91,9 @@ def update_interview(interview, job, application, scorecard):
     new_interview = dict(interview)
     new_interview['candidate_id'] = application['candidate_id']
     new_interview['scorecard_recommendation'] = scorecard['overall_recommendation']
-    new_interview['scorecard_tags'] = find_question_type(scorecard)
+    new_interview['scorecard_ratings'] = json.dumps(scorecard['ratings'])
+    new_interview['scorecard_questions'] = json.dumps(scorecard['questions'])
+    new_interview['interviewed_at'] = scorecard['interviewed_at']
     new_interview['interviewer_id'] = scorecard['submitted_by']['id']
     new_interview['interviewer_name'] = scorecard['submitted_by']['name']
     new_interview['interview_type'] = scorecard['interview']
@@ -97,13 +103,6 @@ def update_interview(interview, job, application, scorecard):
     new_interview['application_status'] = application['status']
     new_interview['application_updated_at'] = application['last_activity_at']
     return new_interview
-
-
-def find_question_type(scorecard):
-    what_question = 'What was'
-    for question in scorecard['questions']:
-        if what_question in question['question']:
-            return question['answer']
 
 
 def main(args):
