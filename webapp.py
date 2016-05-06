@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, send_file, render_template, jsonify
+from flask import (Flask, current_app,
+                   send_file, render_template, jsonify,
+                   json)
 from flask.ext.dataset import Dataset
 
-import tagging
+import scorecard
 import db
 import analyze
 from decorators import requires_auth
@@ -32,7 +34,12 @@ def interviews_json():
 
 def format_row(row):
     interview = dict(row)
-    interview['scorecard_tags'] = list(tagging.split_tags(interview['scorecard_tags']))
+    interview['scorecard_questions'] = json.loads(row['scorecard_questions'])
+    interview['scorecard_ratings'] = json.loads(row['scorecard_ratings'])
+    interview['scorecard_tags'] = list(scorecard.extract_tags(
+        interview['scorecard_questions'],
+        tags_prefix=current_app.config['TAGS_PREFIX'],
+        question_title_re=current_app.config['TAGS_QUESTION_RE']))
     return interview
 
 

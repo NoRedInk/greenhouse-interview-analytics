@@ -1,36 +1,17 @@
 # -*- coding: utf-8 -*-
-import itertools
-import string
-import re
-
-from stop_words import get_stop_words
 
 
-TAG_DELIM_RE = re.compile(r'([.,;()]? +|\.$)')
-COMPOUND_TAG_DELIM_RE = re.compile(r'([-_])')
-PUNCT_ERASER = dict.fromkeys(map(ord, string.punctuation + ' '))
-
-
-def split_tags(tags):
-    if not tags:
+def iter_tags(text, tags_prefix=None, tag_delim=','):
+    '''
+    >>> list(find_tags('tags: foo-bar, baz\\nxyzzy', tags_prefix='tags:'))
+    ['foo-bar', 'baz']
+    '''
+    if not text:
         return []
-    stop_words = get_stop_words('en')
-    for tag in TAG_DELIM_RE.split(tags):
-        if tag in stop_words:
+    for line in text.splitlines():
+        if tags_prefix and not line.startswith(tags_prefix):
             continue
-        cleaned = clean_tag(tag)
-        if cleaned:
-            yield cleaned.lower()
-
-
-def clean_tag(tag):
-    '''
-    >>> clean_tag('(solar-eclipse)')
-    'solar-eclipse'
-    '''
-    if not tag.translate(PUNCT_ERASER):
-        return
-    parts = COMPOUND_TAG_DELIM_RE.split(tag.strip())
-    words = [part.translate(PUNCT_ERASER) for part in parts[::2]]
-    delims = parts[1::2]
-    return ''.join(itertools.chain(*itertools.zip_longest(words, delims, fillvalue='')))
+        for tag in line[len(tags_prefix or ''):].split(tag_delim):
+            cleaned = tag.strip()
+            if cleaned:
+                yield cleaned
