@@ -3,7 +3,7 @@
 
 def iter_tags(text, tags_prefix=None, tag_delim=','):
     '''
-    >>> list(find_tags('tags: foo-bar, baz\\nxyzzy', tags_prefix='tags:'))
+    >>> list(iter_tags('tags: foo-bar, baz\\nxyzzy', tags_prefix='tags:'))
     ['foo-bar', 'baz']
     '''
     if not text:
