@@ -31,6 +31,25 @@ function appendFilterControls(chart, showCurrentFilters) {
   }
 }
 
+function appendSupergroupControls(chart, axis, groupName) {
+  var controls = chart.root()
+      .append('div')
+      .classed('supergroup-controls', true);
+
+  var label = controls
+      .append('label');
+  label
+    .append('input')
+    .attr('type', 'checkbox')
+    .on('change', function(value) {
+      axis.groupBySupergroup(this.checked);
+      chart.redraw();
+    });
+  label
+    .append('span')
+    .text('by ' + groupName);
+}
+
 function pluckedDimensionAndGroup(ndx, propname) {
   var dimension = ndx.dimension(plucker(propname));
   return {
@@ -39,9 +58,103 @@ function pluckedDimensionAndGroup(ndx, propname) {
   };
 }
 
-function createRowChart(ndx, selector, propname) {
-  var axis = pluckedDimensionAndGroup(ndx, propname);
+function pluckedDimensionAndGroupBySupergroup(ndx, propname, superprop) {
+  var dimension = ndx.dimension(plucker(propname));
+
+  var reduceAdd = function(p, v) {
+    var superValue = v[superprop];
+    var propValue = v[propname];
+    p[propValue] = (p[propValue] || {});
+    p[propValue][superValue] = (p[propValue][superValue] || 0) + 1;
+    return p;
+  }
+
+  var reduceRemove = function(p, v) {
+    var superValue = v[superprop];
+    var propValue = v[propname];
+    p[propValue] = (p[propValue] || {});
+    p[propValue][superValue] = (p[propValue][superValue] || 0) - 1;
+    return p;
+  }
+
+  var reduceInitial = function() {
+    return {};
+  }
+
+  var _lastReduceResult = null;
+  var reduce = function() {
+    if (_lastReduceResult !== null) {
+      return _lastReduceResult;
+    }
+    _lastReduceResult = {
+      group: dimension
+        .groupAll()
+        .reduce(reduceAdd, reduceRemove, reduceInitial)
+        .value(),
+      _groupBySupergroup: _groupBySupergroup
+    };
+    return _lastReduceResult;
+  }
+
+  var _groupBySupergroup = false;
+  var groupBySupergroup = function(val) {
+    if (typeof val === 'undefined') {
+      return _groupBySupergroup;
+    }
+    _groupBySupergroup = val;
+    return this;
+  }
+
+  // hack to make dc.js charts work
+  var all = function() {
+    var group = reduce().group;
+    return Object.keys(group).map(function(propValue) {
+      var value;
+      if (_groupBySupergroup) {
+        value = _.chain(group[propValue]).values().filter(function(d) { return d > 0; }).size().value();
+      } else {
+        value = _.chain(group[propValue]).values().sum().value();
+      }
+      return {
+        key: propValue,
+        value: value
+      };
+    });
+  }
+
+  var top = function(count) {
+    var groups = all();
+    groups.sort(function(a, b){return b.value - a.value});
+    return groups.slice(0, count);
+  };
+
+  var size = function() {
+    var groups = all();
+    return groups.length;
+  }
+
+  return {
+    dimension: dimension,
+    group: {
+      all: all,
+      top: top,
+      size: size
+    },
+    groupBySupergroup: groupBySupergroup
+  };
+}
+
+function createRowChart(ndx, selector, propname, superprop, supergroup) {
+  var axis;
+  if (typeof superprop === 'undefined') {
+    axis = pluckedDimensionAndGroup(ndx, propname);
+  } else {
+    axis = pluckedDimensionAndGroupBySupergroup(ndx, propname, superprop);
+  }
   var chart = dc.rowChart(selector);
+  if (typeof superprop !== 'undefined') {
+    appendSupergroupControls(chart, axis, supergroup);
+  }
   appendFilterControls(chart);
   chart
     .width(180)
@@ -49,24 +162,48 @@ function createRowChart(ndx, selector, propname) {
     .margins(defaultMargins)
     .group(axis.group)
     .dimension(axis.dimension)
+  /*
+    .filterHandler(function(dimension, filter){
+      dimension.filter(function(d) {
+        console.log('d', d, 'chart.filter', chart.filter(), 'filter', filter);
+        return chart.filter() != null ? d.indexOf(chart.filter()) >= 0 : true;
+      }); // perform filtering
+      return filter; // return the actual filter value
+    })
+*/
     .elasticX(true)
     .xAxis().ticks(4);
   return {
     chart: chart,
     dimension: axis.dimension,
-    group: axis.group
+    group: axis.group,
+    groupBySupergroup: axis.groupBySupergroup
   };
 }
 
-function createPieChart(ndx, selector, propname) {
-  var axis = pluckedDimensionAndGroup(ndx, propname);
+function createPieChart(ndx, selector, propname, superprop, supergroup) {
+  var axis;
+  if (typeof superprop === 'undefined') {
+    axis = pluckedDimensionAndGroup(ndx, propname);
+  } else {
+    axis = pluckedDimensionAndGroupBySupergroup(ndx, propname, superprop);
+  }
   var chart = dc.pieChart(selector);
+  if (typeof superprop !== 'undefined') {
+    appendSupergroupControls(chart, axis, supergroup);
+  }
   appendFilterControls(chart);
   chart
     .width(180)
     .height(180)
     .radius(80)
     .dimension(axis.dimension)
+  /*
+    .filterHandler(function(dimension, filter){
+      dimension.filter(function(d) {return chart.filter() != null ? d.indexOf(chart.filter()) >= 0 : true;}); // perform filtering
+      return filter; // return the actual filter value
+    })
+*/
     .group(axis.group);
   return {
     chart: chart,
@@ -323,6 +460,18 @@ function createRecsByTagChart(ndx, selector, scorecardRecs) {
       }
       return filters;
     })
+    .hasFilterHandler(function (filters, filter) {
+      if (filter === null || typeof(filter) === 'undefined') {
+        return filters.length > 0;
+      }
+      var tagFilters = filters.map(function(key) {
+        return key.split(':')[1];
+      });
+      var tagFilter = filter.split(':')[1];
+      return tagFilters.some(function (f) {
+        return tagFilter <= f && tagFilter >= f;
+      });
+    })
     .colors(colorScale)
     .colorAccessor(function (p) {
       return p;
@@ -423,28 +572,29 @@ function main(data) {
     d.interviewed_at_date = d3.time.format.iso.parse(d.interviewed_at);
   });
   var ndx = crossfilter(data.interviews);
+  window.ndx = ndx;
   var all = ndx.groupAll();
 
-  var jobTitles = createRowChart(ndx, '#job-title-chart', 'job_title')
+  var jobTitles = createRowChart(ndx, '#job-title-chart', 'job_title', 'candidate_id', 'candidate')
   jobTitles
     .chart
     .ordinalColors(qualitativeColors(5));
-  createRowChart(ndx, '#interviewer-chart', 'interviewer_name')
+  createRowChart(ndx, '#interviewer-chart', 'interviewer_name', 'candidate_id', 'candidate')
     .chart
     .ordinalColors(qualitativeColors(12));
-  createRowChart(ndx, '#interview-type-chart', 'interview_type')
+  createRowChart(ndx, '#interview-type-chart', 'interview_type', 'candidate_id', 'candidate')
     .chart
     .ordering(function(d) {
       return -d.value;
     });
-  createRowChart(ndx, '#scorecard-outcome-chart', 'scorecard_recommendation')
+  createRowChart(ndx, '#scorecard-outcome-chart', 'scorecard_recommendation', 'candidate_id', 'candidate')
     .chart
     .ordering(function(d) {
       return data.scorecard_recs[d.key];
     });
-  createPieChart(ndx, '#overall-outcome-chart', 'application_status');
+  createPieChart(ndx, '#overall-outcome-chart', 'application_status', 'candidate_id', 'candidate');
 
-  createMonthlyVolumeChart(ndx, '#volume-by-month-chart', jobTitles.group, 'job_title');
+  createMonthlyVolumeChart(ndx, '#volume-by-month-chart', jobTitles.group, 'job_title', 'candidate_id', 'candidate');
   var recsByTag = createRecsByTagChart(ndx, '#recs-by-tag-chart', data.scorecard_recs);
 
   createDatatable(ndx, '#datatable');

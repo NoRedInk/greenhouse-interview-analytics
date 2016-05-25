@@ -45,6 +45,12 @@ body {
     color: #666;
 }
 
+.supergroup-controls {
+    margin-left: 10px;
+    font-size: 14px;
+    color: #333;
+}
+
 .dc-table-row:nth-child(2n) {
     background-color: #F2F6F9; /* $blue-dark5 */
 }
@@ -96,4 +102,10 @@ body {
 
 .dc-chart .axis line.grid-line {
     stroke: #ccc;
+}
+
+/* Hide supergroup control for charts that don't make sense */
+
+#scorecard-outcome-chart .supergroup-controls {
+    visibility: hidden;
 }
