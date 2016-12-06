@@ -108,7 +108,7 @@ def update_interview(interview, job, application, scorecard):
 def main(args):
     table = db.interviews_table()
     for job in list_jobs(args.department):
-        for application in list_applications(table, job, only_new=args.incremental, only_active=args.incremental):
+        for application in list_applications(table, job, only_new=args.incremental, only_active=False):
             for scorecard in list_scorecards(application):
                 store_interview(table, job, application, scorecard)
 
