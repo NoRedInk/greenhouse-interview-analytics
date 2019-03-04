@@ -39,7 +39,7 @@ def list_jobs(department):
 
 
 def job_belongs_to_department(department, job):
-    return any(d['name'] == department for d in job['departments'])
+    return any(d['name'] == department for d in job['departments'] if d is not None)
 
 
 def list_applications(table, job, only_new=True, only_active=True):
