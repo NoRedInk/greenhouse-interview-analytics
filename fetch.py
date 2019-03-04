@@ -22,7 +22,7 @@ def iter_list(*path_components, **kwargs):
         response = session.get(
             url,
             params=params)
-        print('--->', len(response.json()))
+        print('--->', len(response.json()), 'items')
         for item in response.json():
             yield item
         if 'next' in response.links:
