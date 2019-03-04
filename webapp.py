@@ -2,8 +2,8 @@
 from flask import (Flask, current_app,
                    send_file, render_template, jsonify,
                    json)
-from flask.ext.dataset import Dataset
 
+from flask_dataset import Dataset
 import scorecard
 import db
 import analyze
