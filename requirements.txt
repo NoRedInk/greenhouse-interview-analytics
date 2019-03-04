@@ -1,7 +1,10 @@
 alembic==1.0.8
+certifi==2018.11.29
+chardet==3.0.4
 Click==7.0
 dataset==1.1.2
 Flask==1.0.2
+idna==2.8
 itsdangerous==1.1.0
 Jinja2==2.10
 Mako==1.0.7
@@ -10,8 +13,9 @@ normality==0.2.4
 python-dateutil==2.8.0
 python-editor==1.0.4
 PyYAML==3.11
-requests==2.9.1
+requests==2.21.0
 six==1.12.0
 SQLAlchemy==1.3.0
 stop-words==2015.2.23.1
+urllib3==1.24.1
 Werkzeug==0.14.1
